@@ -27,8 +27,8 @@ f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, y_{\ell}  \geq 0
 &\sum_{\ell = (*,v)} f^{(s,t)}_{\ell} - 
 	\sum_{\ell= (v,*)}f^{(s,t)}_{\ell}
 	= \sum_{ s\in V,\neq w} \tau^{(s,v)}_{(s,v)}
-&& \forall v,s,t \in V
-\label{LP:sw}
+&& \forall v,s,t \in V, s \neq t
+\label{LP:flowcons}
 \\
 & 
 \begin{cases}
@@ -124,11 +124,12 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 \end{cases}
 &&\forall  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
 \\
-% flow destination
-&\sum_{\ell = (*,w)} f^{(s,w)}_{\ell} - \sum_{\ell= (w,*)}f^{(s,w)}_{\ell}
-	= \sum_{ s\in V,\neq w} \tau^{(s,w)}_{(s,w)}
-&& \forall w \in V
-  \label{LP:flowdest}
+% flow conservstion
+&\sum_{\ell = (*,v)} f^{(s,t)}_{\ell} - 
+\sum_{\ell= (v,*)}f^{(s,t)}_{\ell}
+= \sum_{ s\in V,\neq w} \tau^{(s,v)}_{(s,v)}
+&& \forall v,s,t \in V, s \neq t
+\label{LP:flowcons}
  \\
  % flow source
 % &\sum_{\ell = (*,w)} f^{(w,t)}_{\ell} - \sum_{\ell= (w,*)}f^{(w,t)}_{\ell}
