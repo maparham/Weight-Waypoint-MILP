@@ -24,10 +24,10 @@ f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, y_{\ell}  \geq 0
 &&\forall  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
 \\
 % flow conservstion
-&\sum_{\ell = (*,v)} f^{(s,t)}_{\ell} - 
-	\sum_{\ell= (v,*)}f^{(s,t)}_{\ell}
-	= \sum_{ s\in V,\neq w} \tau^{(s,v)}_{(s,v)}
-&& \forall v,s,t \in V, s \neq t
+&\sum_{\ell = (*,v)} f^{(s,v)}_{\ell} - 
+	\sum_{\ell= (v,*)}f^{(s,v)}_{\ell}
+	=  \sum_{ \forall (s,t,d) \in \mathcal{D}, t\neq v} \omega^{(s,t)}_{v}.\mathcal{D}_{s,t}
+&& s,v \in V
 \label{LP:flowcons}
 \\
 & 
@@ -127,8 +127,8 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 % flow conservstion
 &\sum_{\ell = (*,v)} f^{(s,t)}_{\ell} - 
 \sum_{\ell= (v,*)}f^{(s,t)}_{\ell}
-= \sum_{ s\in V,\neq w} \tau^{(s,v)}_{(s,v)}
-&& \forall v,s,t \in V, s \neq t
+= \sum_{ p,q\in V, p\neq q} \tau^{(p,q)}_{(s,v)}
+&& \forall s,t,v \in V, s \neq t
 \label{LP:flowcons}
  \\
  % flow source
