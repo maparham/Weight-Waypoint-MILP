@@ -23,25 +23,29 @@ f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, y_{\ell}  \geq 0
 \end{cases}
 &&\forall  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
 \\
-% flow conservstion
-&\sum_{\ell = (*,v)} f^{(s,v)}_{\ell} - 
-	\sum_{\ell= (v,*)}f^{(s,v)}_{\ell}
-	=  \sum_{ \forall (s,t,d) \in \mathcal{D}, t\neq v} \omega^{(s,t)}_{v}.\mathcal{D}_{s,t}
-&& s,v \in V
-\label{LP:flowcons}
+% flow sink, left segment 
+&\sum_{\ell = (*,q)} f^{(p,q)}_{\ell}  
+%	-\sum_{\ell= (v,*)}f^{(s,v)}_{\ell}
+	=  \sum_{ \forall (s,t,d) \in \mathcal{D},s=p} \omega^{(s,t)}_{q}.\mathcal{D}_{s,t}
+&& p, q \in V
+\label{LP:flowsink}
 \\
-& 
-\begin{cases}
-\omega^{(s,t)}_{t} = 1 \\
-\tau^{(s,t)}_{(s,t)} = d
-\end{cases}
-&& \forall (s,t,d) \in \mathcal{D}
-\label{LP:wp_t}
+% flow source, right segment
+&\sum_{\ell = (p,*)} f^{(p,q)}_{\ell}  
+=  \sum_{ \forall (s,t,d) \in \mathcal{D},t=q} \omega^{(s,t)}_{p}.\mathcal{D}_{s,t}
+&& p, q \in V
+\label{LP:flowsink}
+\\
+%  flow conservation
+&\sum_{\ell = (*,v)} f^{(p,q)}_{\ell} =
+\sum_{\ell= (v,*)}f^{(p,q)}_{\ell} 
+&& p,q,v \in V, v \not\in \{p,q\}
+\label{LP:flowcons}
 \\
 &
 \\
 % waypoint limit
-&\sum_{v \in V}  \omega^{(s,t)}_v \leq W
+&\sum_{v \in V}  \omega^{(s,t)}_v = 1
 && \forall (s,t,d) \in \mathcal{D}
 \label{LP:wp_limit} 
 \\
@@ -124,12 +128,18 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 \end{cases}
 &&\forall  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
 \\
-% flow conservstion
-&\sum_{\ell = (*,v)} f^{(s,t)}_{\ell} - 
-\sum_{\ell= (v,*)}f^{(s,t)}_{\ell}
-= \sum_{ p,q\in V, p\neq q} \tau^{(p,q)}_{(s,v)}
-&& \forall s,t,v \in V, s \neq t
-\label{LP:flowcons}
+% left segment
+&\sum_{\ell = (*,q)} f^{(p,q)}_{\ell} 
+= \sum_{ s,t\in V, s\neq t} \tau^{(s,t)}_{(p,q)}
+%\sum_{\ell= (v,*)}f^{(s,t)}_{\ell}
+&& \forall p,q \in V
+\label{LP:flowsink1}
+ \\
+ % right segment
+ &\sum_{\ell = (v,*)} f^{(p,q)}_{\ell} = 
+ \sum_{\ell = (*,v)} f^{(p,q)}_{\ell} 
+ && \forall p,q,v \in V, v \not\in \{p,q\}
+ \label{LP:flowcons1}
  \\
  % flow source
 % &\sum_{\ell = (*,w)} f^{(w,t)}_{\ell} - \sum_{\ell= (w,*)}f^{(w,t)}_{\ell}
