@@ -15,52 +15,75 @@
 \begin{align}
 & \text{Minimize} ~L \nonumber	&&\\
 % variables 
-&M := \sum_{ (s,t,d) \in \mathcal{D}} d &&
+&M := \sum_{(s,t,d)_i \in \mathcal{D}} d &&
+\\
+&\mathcal{S} := \{(p,q) \in V^2 ~|~  p \neq q \}	&&
 \\
 &\begin{cases}
-\omega^{(s,t)}_{w} \in \{0,1\} \\
-f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, y_{\ell}  \geq 0
+	S^{(s,t)_i}_{(p,q)}, x^{p}_{\ell} \in \{0,1\} \\	%\omega^{(s,t)_i}_{v}
+	f^{(p)}_{\ell}, f^{(p,q)}_{v}, d^{p}_v, y_{\ell}  \geq 0
 \end{cases}
-&&\forall  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
+&&
+\begin{multlined}
+	  (p,q) \in \mathcal{S}, \ell \in E, \\
+	   (s,t,d)_i \in \mathcal{D}
+\end{multlined}	 \label{LP:vardef}    
 \\
-% flow sink, left segment 
-&\sum_{\ell = (*,q)} f^{(p,q)}_{\ell}  
-%	-\sum_{\ell= (v,*)}f^{(s,v)}_{\ell}
-	=  \sum_{ \forall (s,t,d) \in \mathcal{D},s=p} \omega^{(s,t)}_{q}.\mathcal{D}_{s,t}
-&& p, q \in V
-\label{LP:flowsink}
-\\
-% flow source, right segment
-&\sum_{\ell = (p,*)} f^{(p,q)}_{\ell}  
-=  \sum_{ \forall (s,t,d) \in \mathcal{D},t=q} \omega^{(s,t)}_{p}.\mathcal{D}_{s,t}
-&& p, q \in V
-\label{LP:flowsink}
+% flow source constraints, one per  (p,q)-segment, p or q is source/terminal
+%&\sum_{\ell = (p,*)} f^{(p,q)}_{\ell}  =
+%	   \sum_{\hspace{-5ex}\mathrlap{ (s,t,d)_i \in \mathcal{D}, t=q}} 
+%		\omega^{(s,t)_i}_{p}\cdot d +
+%	   \sum_{\hspace{-5ex}\mathrlap{ (s,t,d)_i \in \mathcal{D}, p=s}} 
+%		\omega^{(s,t)_i}_{q}\cdot d		
+%&&	(p,q) \in \mathcal{S}	\label{LP:flowWP}
+%\\
+% segment flow constraints
+&\sum_{\ell = (p,*)} f^{(p,q)}_{\ell}  =
+\sum_{\hspace{-5ex}\mathrlap{ (s,t,d)_i \in \mathcal{D}}} 
+	S^{(s,t)_i}_{(p,q)} \cdot d 
+&&	 (p,q) \in \mathcal{S}	\label{LP:flowWP}
 \\
 %  flow conservation
 &\sum_{\ell = (*,v)} f^{(p,q)}_{\ell} =
-\sum_{\ell= (v,*)}f^{(p,q)}_{\ell} 
-&& p,q,v \in V, v \not\in \{p,q\}
-\label{LP:flowcons}
+	\sum_{\hspace{-5ex}\mathrlap{\ell= (v,*)} }f^{(p,q)}_{\ell} 
+&&
+\begin{multlined}
+	(p,q) \in \mathcal{S}, \\
+	 v \not\in \{p,q\}
+\end{multlined} 	\label{LP:flowcons}
 \\
-&
+% force segment graph into an SR-path, i.e. connecting s_i to t_i and linear
+&\sum_{\hspace{-4ex}\mathrlap{ p:(p,w) \in \mathcal{S}}} 	S^{(s,t)_i}_{(p,w)}	
+	\leq \sum_{\hspace{-4ex}\mathrlap{ q:(w,q) \in \mathcal{S}}}
+S^{(s,t)_i}_{(w,q) }	\leq 1
+&&	 
+\begin{multlined}
+	(s,t,d)_i \in \mathcal{D}, \\
+	w \in V, w \neq t
+\end{multlined} \label{LP:segmentDegree}
+\\
+% force one SR-path from every source node
+&\sum_{\hspace{-4ex}\mathrlap{ q:(s,q) \in \mathcal{S}}} S^{(s,t)_i}_{(s,q)} = 1
+&&  (s,t,d)_i \in \mathcal{D}
+\label{LP:wp_limit} 
 \\
 % waypoint limit
-&\sum_{v \in V}  \omega^{(s,t)}_v = 1
-&& \forall (s,t,d) \in \mathcal{D}
+%&\sum_{v \in V, v \neq s}  \omega^{(s,t)}_v = 1
+%&&  (s,t,d)_i \in \mathcal{D}
+%\label{LP:wp_limit} 
+%\\
+% waypoint limit
+&\sum_{\hspace{-4ex}\mathrlap{(p,q) \in \mathcal{S}}} S^{(s,t)_i}_{(p,q)}  \leq W+1
+&&  (s,t,d)_i \in \mathcal{D}
 \label{LP:wp_limit} 
 \\
 % capacities
-& \sum_{ s,t \in V} f^{(s,t)}_{\ell} \leq L \cdot C_{\ell}
-&& \forall \ell \in E
+& \sum_{\hspace{-3ex}\mathrlap{(p,q) \in \mathcal{S}}} f^{(p,q)}_{\ell} \leq L \cdot C_{\ell}
+&&  \ell \in E
 \\
-% % flow through \ell
-% &  f^{(s,t)}_{\ell}  = \sum_{(s,t,d) \in \mathcal{D}} f^{(s,t)}_{\ell} 
-% && \forall\ell \in E, t \in V: \exists(s,t,d) \in \mathcal{D}
-% \label{LP:ellFlow} 
-% \\
 % shortest path trees
-&   f^{(s,t)}_{\ell} \leq M \cdot x^{(t)}_{\ell}
-&& \forall \ell \in E, s,t \in V
+&   f^{(p,q)}_{\ell} \leq M \cdot x^{(q)}_{\ell}
+&&  \ell \in E, (p,q) \in \mathcal{S}
 \label{LP:SPTree} 
 \\
 % equal split
@@ -69,7 +92,7 @@ f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, y_{\ell}  \geq 0
 f^{(s,t)}_{\ell} \leq f^{(s,t)}_{v}	\\
 f^{(s,t)}_{v} - f^{(s,t)}_{\ell} \leq M(1 - x^{t}_{\ell}) 
 \end{cases*}	
-&& \forall v,s,t \in V, \ell = (v,*)
+&&  v,s,t \in V, \ell = (v,*)
 \label{LP:equalSplit} 
 \\ 
 %%waypoint setting
@@ -77,7 +100,7 @@ f^{(s,t)}_{v} - f^{(s,t)}_{\ell} \leq M(1 - x^{t}_{\ell})
 %	h^{(s,t)}_{v,\ell} \leq (1-x^{(v)}_{\ell})	\\
 %	h^{(s,t)}_{v,\ell} \leq	w^{(s,t)}_v 
 %\end{cases}
-%&& \forall v \in V, \ell = (v,*), (s,t,d) \in \mathcal{D}
+%&&  v \in V, \ell = (v,*), (s,t,d) \in \mathcal{D}
 % \label{LP:equalSplit3} 
 %\\
 % shortest paths, weight setting
@@ -86,8 +109,8 @@ d^{t}_u \leq d^{t}_v + y_{\ell} \\
 d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 1 - x^t_{\ell} \leq M(d^{t}_v - d^{t}_u + y_{\ell})
 \end{cases*}
-&& \forall \ell = (u,v),  t \in V
-\label{LP:weights} 
+&&  \ell = (u,v),  t \in V
+\label{LP:weights}
 \end{align}
 
 
@@ -126,25 +149,25 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
  \in \{0,1\} \\
  f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, y_{\ell}  \geq 0
 \end{cases}
-&&\forall  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
+&&  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
 \\
 % left segment
 &\sum_{\ell = (*,q)} f^{(p,q)}_{\ell} 
 = \sum_{ s,t\in V, s\neq t} \tau^{(s,t)}_{(p,q)}
 %\sum_{\ell= (v,*)}f^{(s,t)}_{\ell}
-&& \forall p,q \in V
+&&  p,q \in V
 \label{LP:flowsink1}
  \\
  % right segment
  &\sum_{\ell = (v,*)} f^{(p,q)}_{\ell} = 
  \sum_{\ell = (*,v)} f^{(p,q)}_{\ell} 
- && \forall p,q,v \in V, v \not\in \{p,q\}
+ &&  p,q,v \in V, v \not\in \{p,q\}
  \label{LP:flowcons1}
  \\
  % flow source
 % &\sum_{\ell = (*,w)} f^{(w,t)}_{\ell} - \sum_{\ell= (w,*)}f^{(w,t)}_{\ell}
 % 	= \sum_{  t \in V, \neq w} - \tau^{(w,t)}_{(w,t)}
-% && \forall w \in V
+% &&  w \in V
 % \label{LP:flowsource}
 % \\
  & 
@@ -152,7 +175,7 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 	 \omega^{(s,t)}_{t} = 1 \\
 	 \tau^{(s,t)}_{(s,t)} = d
  \end{cases}
- && \forall (s,t,d) \in \mathcal{D}
+ &&  (s,t,d) \in \mathcal{D}
  \label{LP:wp_t}
  \\
  % segment activation
@@ -165,7 +188,7 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
     \omega^{(s,t)}_{w} \cdot (1-\tau^{(s,t)}_{(s,w)}) \leq  \sum_{w' \in V} \omega^{(s,w)}_{w'}	\\
     \omega^{(s,t)}_{w} \cdot (1-\tau^{(s,t)}_{(w,t)})  \leq  \sum_{w' \in V} \omega^{(w,t)}_{w'}	    
  \end{cases*}	 
- && \forall s,t,w \in V, s\neq t
+ &&  s,t,w \in V, s\neq t
  \label{LP:segments}
   \\
  &
@@ -175,25 +198,25 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
  \sum_{ v\in V} \tau^{(s,v)}_{(s,w)} \leq \tau^{(s,w)}_{(s,w)} \\
    \sum_{ v\in V} \tau^{(v,t)}_{(w,t)} \leq  \tau^{(w,t)}_{(w,t)} 
  \end{cases*}
- && \forall s,t,w \in V, s\neq t
+ &&  s,t,w \in V, s\neq t
  \\
   % waypoint limit
  &\sum_{v \in V}  \omega^{(s,t)}_v \leq W
- && \forall (s,t,d) \in \mathcal{D}
+ &&  (s,t,d) \in \mathcal{D}
  \label{LP:wp_limit} 
  \\
  % capacities
  & \sum_{ s,t \in V} f^{(s,t)}_{\ell} \leq L \cdot C_{\ell}
- && \forall \ell \in E
+ &&  \ell \in E
  \\
 % % flow through \ell
 % &  f^{(s,t)}_{\ell}  = \sum_{(s,t,d) \in \mathcal{D}} f^{(s,t)}_{\ell} 
-% && \forall\ell \in E, t \in V: \exists(s,t,d) \in \mathcal{D}
+% && \ell \in E, t \in V: \exists(s,t,d) \in \mathcal{D}
 % \label{LP:ellFlow} 
 % \\
   % shortest path trees
 &   f^{(s,t)}_{\ell} \leq M \cdot x^{(t)}_{\ell}
-&& \forall \ell \in E, s,t \in V
+&&  \ell \in E, s,t \in V
  \label{LP:SPTree} 
  \\
 % equal split
@@ -202,7 +225,7 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 	f^{(s,t)}_{\ell} \leq f^{(s,t)}_{v}	\\
 	f^{(s,t)}_{v} - f^{(s,t)}_{\ell} \leq M(1 - x^{t}_{\ell}) 
 \end{cases*}	
-&& \forall v,s,t \in V, \ell = (v,*)
+&&  v,s,t \in V, \ell = (v,*)
  \label{LP:equalSplit} 
 \\ 
 %%waypoint setting
@@ -210,7 +233,7 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 %	h^{(s,t)}_{v,\ell} \leq (1-x^{(v)}_{\ell})	\\
 %	h^{(s,t)}_{v,\ell} \leq	w^{(s,t)}_v 
 %\end{cases}
-%&& \forall v \in V, \ell = (v,*), (s,t,d) \in \mathcal{D}
+%&&  v \in V, \ell = (v,*), (s,t,d) \in \mathcal{D}
 % \label{LP:equalSplit3} 
 %\\
 % shortest paths, weight setting
@@ -219,7 +242,7 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 	d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 	1 - x^t_{\ell} \leq M(d^{t}_v - d^{t}_u + y_{\ell})
 \end{cases*}
-&& \forall \ell = (u,v),  t \in V
+&&  \ell = (u,v),  t \in V
  \label{LP:weights} 
 \end{align}
 
