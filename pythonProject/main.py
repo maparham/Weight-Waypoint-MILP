@@ -6,28 +6,17 @@ from ortools.linear_solver import pywraplp
 
 
 def main():
-    demands = [(1, 4, 1, 0), (1, 4, 2, 1)]  # s,t,d,i   Todo: check s != t
     nodes = [1, 2, 3, 4]
-    links = [(1, 2, 1), (1, 3, 1), (2, 4, 1), (3, 4, 1)]  # u,v,capacity
+    links = [(1, 2, 1), (1, 3, 1), (2, 4, 1), (3, 4, 1), (2, 3, 1)]  # (u,v,capacity)
+    demands = [(1, 4, 1, 0), (1, 4, 2, 1)]  # (s,t,d,i)   Todo: check s != t
+    W = 1  # max number of waypoints allowed per demand
 
     # st_pairs = list(map(itemgetter(0, 1), demands))
     segments = []  # pairs of nodes p,q where at least one of p or q is a source/terminal
-    for s, t, d, i in demands:
-        segments.append((s, t))
-        for v in nodes:
-            if v == s or v == t:
-                continue  # to ensure p!=q for segment (p,q)
-            segments += [(s, v), (v, t)]
-    segments = set(segments)  # remove duplicates
-
-    def x(v, l):
-        l_str = str(l[0]) + str(l[1])
-        return 'x^' + str(v) + '_' + l_str
-
-    def f(p, q, l):
-        l_str = str(l[0]) + ',' + str(l[1])
-        pq = str(p) + ',' + str(q)
-        return 'f^{' + pq + '}_{' + l_str + '}'
+    for p in nodes:
+        for q in nodes:
+            if p == q: continue
+            segments.append((p, q))
 
     # [START solver]
     # Create the mip solver with the CBC backend.
@@ -38,6 +27,15 @@ def main():
     infinity = solver.infinity()
 
     # segments = [(p, q) for p in nodes for q in nodes if p != q]
+
+    def x(v, l):
+        l_str = str(l[0]) + str(l[1])
+        return 'x^' + str(v) + '_' + l_str
+
+    def f(p, q, l):
+        l_str = str(l[0]) + ',' + str(l[1])
+        pq = str(p) + ',' + str(q)
+        return 'f^{' + pq + '}_{' + l_str + '}'
 
     def w(s, t, i, v):
         return 'w^{' + str((s, t)) + '_' + str(i) + '}_' + str(v)
@@ -51,9 +49,9 @@ def main():
         for p, q in segments:
             solver.NumVar(0.0, infinity, f(p, q, l))
 
-    for s, t, d, i in demands:
-        for v in nodes:
-            solver.IntVar(0, 1, w(s, t, i, v))
+    # for s, t, d, i in demands:
+    #     for v in nodes:
+    #         solver.IntVar(0, 1, w(s, t, i, v))
 
     for s, t, d, i in demands:
         for p, q in segments:
@@ -63,7 +61,6 @@ def main():
     # [END variables]
 
     # [Add constraints]
-
     # for s, t in st_pairs:
     #     for v in nodes:
     #         if v == s: continue
@@ -91,22 +88,26 @@ def main():
     #             if v != t and len(f_vt) > 0:  # if there v has outgoing links and not a terminal
     #                 solver.Add(solver.Sum(f_vt) == solver.Sum(f_sv))
 
-    # segment constraints
+    # segment flow constraints
     for p, q in segments:
         f_pql = []
         for l in links:
             if l[0] == p:
                 f_pql.append(solver.LookupVariable(f(p, q, l)))
-        w_stip = []
-        w_stiq = []
+        # w_stip = []
+        # w_stiq = []
+        s_sti_pq = []
         for s, t, d, i in demands:
-            if p == s:
-                w_stiq.append((solver.LookupVariable(w(s, t, i, q)) * d))
-            elif q == t:
-                w_stip.append((solver.LookupVariable(w(s, t, i, p)) * d))
+            s_sti_pq.append(solver.LookupVariable(seg(s, t, i, p, q)) * d)
 
-        if len(w_stip) > 0 or len(w_stiq) > 0:
-            solver.Add(solver.Sum(f_pql) == solver.Sum(w_stip) + solver.Sum(w_stiq))
+        solver.Add(solver.Sum(f_pql) == solver.Sum(s_sti_pq))
+
+    # if p == s:
+    #     w_stiq.append((solver.LookupVariable(w(s, t, i, q)) * d))
+    # elif q == t:
+    #     w_stip.append((solver.LookupVariable(w(s, t, i, p)) * d))
+    # if len(w_stip) > 0 or len(w_stiq) > 0:
+    #     solver.Add(solver.Sum(f_pql) == solver.Sum(w_stip) + solver.Sum(w_stiq))
 
     # flow conservation constraints
     for p, q in segments:
@@ -128,25 +129,33 @@ def main():
                 # print(solver.Sum(f_pq_out), '==', solver.Sum(f_pq_in))
                 solver.Add(solver.Sum(f_pq_out) + 0 == solver.Sum(f_pq_in) + 0)
 
-    # force single WP
+    # segment paths constraints
     for s, t, d, i in demands:
-        w_sti = []
-        for v in nodes:
-            if v != s:
-                w_sti.append(solver.LookupVariable(w(s, t, i, v)))
-        solver.Add(solver.Sum(w_sti) == 1)
+        for w in nodes:
+            # if w == t: continue
+            s_sti_pw = []
+            s_sti_wq = []
+            for p in nodes:
+                if p == w: continue
+                s_sti_pw.append(solver.LookupVariable(seg(s, t, i, p, w)))
+            for q in nodes:
+                if q == w: continue
+                s_sti_wq.append(solver.LookupVariable(seg(s, t, i, w, q)))
 
-    # # waypoint constraints
-    # # solver.Add(w14_1_4 == 1)
-    # # solver.Add(w14_2_4 == 1)
-    # solver.Add(w14_1_2 + w14_1_3 + w14_1_4 == 1)
-    # solver.Add(w14_2_2 + w14_2_3 + w14_2_4 == 1)
-    #
-    # # capacity constraints
-    # solver.Add(f14_12 + f12_12 <= 1)
-    # solver.Add(f14_24 + f24_24 <= 1)
-    # solver.Add(f14_13 + f13_13 <= 2)
-    # solver.Add(f14_34 + f34_34 <= 2)
+            solver.Add(solver.Sum(s_sti_wq) <= 1)
+            if w == s:  # force a segment at source
+                solver.Add(solver.Sum(s_sti_wq) == 1)
+            if w == t:
+                solver.Add(solver.Sum(s_sti_pw) == 1)
+            else:  # make some wq an active segment if some pw is so
+                solver.Add(solver.Sum(s_sti_pw) <= solver.Sum(s_sti_wq))
+
+    # number of segments, per demand
+    for s, t, d, i in demands:
+        s_sti_pq = []
+        for p, q in segments:
+            s_sti_pq.append(solver.LookupVariable(seg(s, t, i, p, q)))
+        solver.Add(solver.Sum(s_sti_pq) <= W + 1)
 
     print('Number of constraints =', solver.NumConstraints())
 

@@ -1,16 +1,15 @@
 
-\documentclass[a4paper,USenglish]{lipics-v2018}
+\documentclass[a4paper,USenglish]{article}
 
 \usepackage{amsmath,amssymb,amsfonts,mathtools}
 \usepackage{cases}
+\usepackage{comment}
 
-\title{Link weight, waypoint Optimization}
-
+\title{Weight-Waypoint Optimization}
+\date{\today}
 \begin{document}
 
 \maketitle
-
-\section{Single Waypoint}
 
 \begin{align}
 & \text{Minimize} ~L \nonumber	&&\\
@@ -53,25 +52,24 @@
 \end{multlined} 	\label{LP:flowcons}
 \\
 % force segment graph into an SR-path, i.e. connecting s_i to t_i and linear
-&\sum_{\hspace{-4ex}\mathrlap{ p:(p,w) \in \mathcal{S}}} 	S^{(s,t)_i}_{(p,w)}	
+&
+\begin{dcases}
+ \begin{drcases}
+	\sum_{\hspace{-4ex}\mathrlap{ p:(p,w) \in \mathcal{S}}}
+		S^{(s,t)_i}_{(p,w)}	 & w \neq s\\
+ 1	& w=s 
+\end{drcases}
 	\leq \sum_{\hspace{-4ex}\mathrlap{ q:(w,q) \in \mathcal{S}}}
-S^{(s,t)_i}_{(w,q) }	\leq 1
-&&	 
+S^{(s,t)_i}_{(w,q) }	\leq 1	& w \neq t	\\
+\sum_{\hspace{-4ex}\mathrlap{ p:(p,w) \in \mathcal{S}}}
+S^{(s,t)_i}_{(p,w)}	= 1	& w=t
+\end{dcases}
+&&
 \begin{multlined}
 	(s,t,d)_i \in \mathcal{D}, \\
-	w \in V, w \neq t
+	w \in V
 \end{multlined} \label{LP:segmentDegree}
 \\
-% force one SR-path from every source node
-&\sum_{\hspace{-4ex}\mathrlap{ q:(s,q) \in \mathcal{S}}} S^{(s,t)_i}_{(s,q)} = 1
-&&  (s,t,d)_i \in \mathcal{D}
-\label{LP:wp_limit} 
-\\
-% waypoint limit
-%&\sum_{v \in V, v \neq s}  \omega^{(s,t)}_v = 1
-%&&  (s,t,d)_i \in \mathcal{D}
-%\label{LP:wp_limit} 
-%\\
 % waypoint limit
 &\sum_{\hspace{-4ex}\mathrlap{(p,q) \in \mathcal{S}}} S^{(s,t)_i}_{(p,q)}  \leq W+1
 &&  (s,t,d)_i \in \mathcal{D}
@@ -89,10 +87,10 @@ S^{(s,t)_i}_{(w,q) }	\leq 1
 % equal split
 &
 \begin{cases*}
-f^{(s,t)}_{\ell} \leq f^{(s,t)}_{v}	\\
-f^{(s,t)}_{v} - f^{(s,t)}_{\ell} \leq M(1 - x^{t}_{\ell}) 
+f^{(p,q)}_{\ell} \leq f^{(p,q)}_{v}	\\
+f^{(p,q)}_{v} - f^{(p,q)}_{\ell} \leq M(1 - x^{t}_{\ell}) 
 \end{cases*}	
-&&  v,s,t \in V, \ell = (v,*)
+&&  (p,q) \in \mathcal{D},v \in V, \ell = (v,*)
 \label{LP:equalSplit} 
 \\ 
 %%waypoint setting
@@ -114,29 +112,27 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 \end{align}
 
 
-\section{General MIP}
+
 \begin{itemize}
+\item
+	$W$: maximum  number of waypoints allowed per demand (constant).
+\item
+	$M$: a constant large enough.		
 \item	
 	$x^{(t)}_{\ell}$:	binary variables indicating whether link $\ell$ is on a shortest path to node $t$.
 \item	
-	$f^{(t)}_{\ell}$: the fractional amount of $(s,t)$-flow on link $\ell$.
+	$f^{(p,q)}_{\ell}$: the fractional amount of flow for segment $(p,q)$ on the link $\ell$.
 \item	
-	$f^{(t)}_{v}$:  the amount of $(s,t)$-flow on every outgoing link from node $v$.
+	$f^{(p,q)}_{v}$:  the total flow of segment $(p,q)$ leaving  node $v$.
 \item
-	$\omega^{(s,t)}_{w}$: binary variable indicating whether node $w$ is a waypoint on the $(s,t)$-flow. 
-\item $\tau^{(s,t)}_{s,w}, \tau^{(s,t)}_{w,t}$: binary variables indicating active status of segments $(s,w)$ and $(w,t)$.
+	$S^{(s,t)_i}_{(p,q)}$: binary variable indicating whether segment $(p,q)$ is  active for demand $(s,t,d)_i$
 \item
 	$d^{t}_v$: shortest path weight from $v$ to $t$.
 \item	
-	$y_{\ell}$: link weights.
-\item	
-	$h^{(s,t)}_{(s,w)}, h^{(s,t)}_{(w,t)}$: binary (helper) variables.
-\item
-	$W$: maximum  number of waypoints allowed per flow (constant).
-\item
-	$M$: a constant large enough.	
+	$y_{\ell}$: weight of link $\ell$.
 \end{itemize}
 
+\begin{comment}
 \begin{align}
 & \text{Minimize} ~L \nonumber	&&\\
 % variables 
@@ -245,6 +241,7 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 &&  \ell = (u,v),  t \in V
  \label{LP:weights} 
 \end{align}
+\end{comment}
 
 Constraints (\ref{LP:flowdest}) impose flow conservation for every destination (sink node) $t$
 and as well as for the ordinary  nodes which must preserve the flow.
