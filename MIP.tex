@@ -5,6 +5,8 @@
 \usepackage{cases}
 \usepackage{comment}
 
+\newcommand{\sub}[1]{ \hspace{-4ex}\mathrlap{#1} }
+
 \title{Weight-Waypoint Optimization}
 \date{\today}
 \begin{document}
@@ -14,100 +16,79 @@
 \begin{align}
 & \text{Minimize} ~L \nonumber	&&\\
 % variables 
-&M := \sum_{(s,t,d)_i \in \mathcal{D}} d &&
+&M := \max \{ \sum_{\sub{(s,t,d)_i \in \mathcal{D}}} d, 2|E| \} &&
 \\
 &\mathcal{S} := \{(p,q) \in V^2 ~|~  p \neq q \}	&&
 \\
-&\begin{cases}
-	S^{(s,t)_i}_{(p,q)}, x^{p}_{\ell} \in \{0,1\} \\	%\omega^{(s,t)_i}_{v}
-	f^{(p)}_{\ell}, f^{(p,q)}_{v}, d^{p}_v, y_{\ell}  \geq 0
-\end{cases}
+&\begin{dcases}
+	S^{(s,t)_i}_{(p,q)}, x^{q}_{\ell} \in \{0,1\} \\
+	f^{(p,q)}_{\ell}, f^{q}_{p}, d_{p,q}, w_{\ell}  \geq 0, w_{\ell}  \leq 1
+\end{dcases}
 &&
 \begin{multlined}
 	  (p,q) \in \mathcal{S}, \ell \in E, \\
 	   (s,t,d)_i \in \mathcal{D}
 \end{multlined}	 \label{LP:vardef}    
 \\
-% flow source constraints, one per  (p,q)-segment, p or q is source/terminal
-%&\sum_{\ell = (p,*)} f^{(p,q)}_{\ell}  =
-%	   \sum_{\hspace{-5ex}\mathrlap{ (s,t,d)_i \in \mathcal{D}, t=q}} 
-%		\omega^{(s,t)_i}_{p}\cdot d +
-%	   \sum_{\hspace{-5ex}\mathrlap{ (s,t,d)_i \in \mathcal{D}, p=s}} 
-%		\omega^{(s,t)_i}_{q}\cdot d		
-%&&	(p,q) \in \mathcal{S}	\label{LP:flowWP}
-%\\
-% segment flow constraints
-&\sum_{\ell = (p,*)} f^{(p,q)}_{\ell}  =
-\sum_{\hspace{-5ex}\mathrlap{ (s,t,d)_i \in \mathcal{D}}} 
-	S^{(s,t)_i}_{(p,q)} \cdot d 
-&&	 (p,q) \in \mathcal{S}	\label{LP:flowWP}
+& D_{p,q} := \sum_{\sub{ (s,t,d)_i \in \mathcal{D}}} S^{(s,t)_i}_{(p,q)} \cdot d
+&& (p,q) \in \mathcal{S}
 \\
-%  flow conservation
-&\sum_{\ell = (*,v)} f^{(p,q)}_{\ell} =
-	\sum_{\hspace{-5ex}\mathrlap{\ell= (v,*)} }f^{(p,q)}_{\ell} 
-&&
-\begin{multlined}
-	(p,q) \in \mathcal{S}, \\
-	 v \not\in \{p,q\}
-\end{multlined} 	\label{LP:flowcons}
+%  flow constraints, per segment
+&\sum_{\sub{\ell = (*,v) \in E}} f^{(p,q)}_{\ell}  -
+	\sum_{\sub{\ell= (v,*) \in E} }f^{(p,q)}_{\ell} =
+	\begin{dcases}
+	0	&v \neq p,q\\
+	- D_{p,q} 	&v=p \\
+	D_{p,q} &v=q
+	\end{dcases}
+&&(p,q) \in \mathcal{S}, v \in V	\label{LP:flowcons}
 \\
-% force segment graph into an SR-path, i.e. connecting s_i to t_i and linear
-&
-\begin{dcases}
- \begin{drcases}
-	\sum_{\hspace{-4ex}\mathrlap{ p:(p,w) \in \mathcal{S}}}
-		S^{(s,t)_i}_{(p,w)}	 & w \neq s\\
- 1	& w=s 
-\end{drcases}
-	\leq \sum_{\hspace{-4ex}\mathrlap{ q:(w,q) \in \mathcal{S}}}
-S^{(s,t)_i}_{(w,q) }	\leq 1	& w \neq t	\\
-\sum_{\hspace{-4ex}\mathrlap{ p:(p,w) \in \mathcal{S}}}
-S^{(s,t)_i}_{(p,w)}	= 1	& w=t
-\end{dcases}
-&&
-\begin{multlined}
-	(s,t,d)_i \in \mathcal{D}, \\
-	w \in V
-\end{multlined} \label{LP:segmentDegree}
+%  segment contraints, per demand
+& \sum_{\sub{ s=(*,v) \in \mathcal{S}}} S^{(s,t)_i}_{s} - 
+	 \sum_{\sub{ s=(v,*) \in \mathcal{S}}} S^{(s,t)_i}_{s} =
+	 \begin{dcases}
+	 	0	& v \neq s,t	\\
+	 	-1	&v=s	\\
+	 	1	&v=t
+	 \end{dcases}
+&&(s,t,d)_i \in \mathcal{D}, v \in V		\label{LP:segments}
 \\
 % waypoint limit
-&\sum_{\hspace{-4ex}\mathrlap{(p,q) \in \mathcal{S}}} S^{(s,t)_i}_{(p,q)}  \leq W+1
+&\sum_{\sub{(p,q) \in \mathcal{S}}} S^{(s,t)_i}_{(p,q)}  \leq W+1
 &&  (s,t,d)_i \in \mathcal{D}
 \label{LP:wp_limit} 
 \\
 % capacities
-& \sum_{\hspace{-3ex}\mathrlap{(p,q) \in \mathcal{S}}} f^{(p,q)}_{\ell} \leq L \cdot C_{\ell}
+& \sum_{\sub{(p,q) \in \mathcal{S}}} f^{(p,q)}_{\ell} \leq L \cdot C_{\ell}
 &&  \ell \in E
 \\
 % shortest path trees
-&   f^{(p,q)}_{\ell} \leq M \cdot x^{(q)}_{\ell}
-&&  \ell \in E, (p,q) \in \mathcal{S}
+&   f^{(p,q)}_{\ell} \leq M \cdot x^{q}_{\ell}
+&&   (p,q) \in \mathcal{S},  \ell \in E
 \label{LP:SPTree} 
+%\\
+%&x^{t}_{\ell} \leq	
+%		M \cdot \sum_{\sub{p: (p,t) \in \mathcal{S}}} f^{(p,t)}_{\ell}
+%&& t \in V, \ell \in E
+%\label{LP:SPTree} 
 \\
 % equal split
 &
-\begin{cases*}
-f^{(p,q)}_{\ell} \leq f^{(p,q)}_{v}	\\
-f^{(p,q)}_{v} - f^{(p,q)}_{\ell} \leq M(1 - x^{t}_{\ell}) 
-\end{cases*}	
-&&  (p,q) \in \mathcal{D},v \in V, \ell = (v,*)
+\begin{dcases*}
+\sum_{\sub{p:(p,t) \in \mathcal{S}}} f^{(p,t)}_{\ell} \leq f^{t}_{v}	\\
+f^{t}_{v} - \sum_{\sub{p:(p,t) \in \mathcal{S}}} f^{(p,t)}_{\ell} \leq 
+	M \cdot (1 - x^{t}_{\ell}) 
+\end{dcases*}			
+&&  v,t \in V, v \neq t, \ell = (v,*)
 \label{LP:equalSplit} 
 \\ 
-%%waypoint setting
-%&\begin{cases}
-%	h^{(s,t)}_{v,\ell} \leq (1-x^{(v)}_{\ell})	\\
-%	h^{(s,t)}_{v,\ell} \leq	w^{(s,t)}_v 
-%\end{cases}
-%&&  v \in V, \ell = (v,*), (s,t,d) \in \mathcal{D}
-% \label{LP:equalSplit3} 
-%\\
 % shortest paths, weight setting
-&\begin{cases*}
-d^{t}_u \leq d^{t}_v + y_{\ell} \\
-d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
-1 - x^t_{\ell} \leq M(d^{t}_v - d^{t}_u + y_{\ell})
-\end{cases*}
-&&  \ell = (u,v),  t \in V
+&\begin{dcases*}
+d_{u,t} \leq d_{v,t} + w_{\ell} \\
+d_{v,t} - d_{u,t} + w_{\ell} \leq M \cdot (1 - x^t_{\ell})	\\
+1 - x^t_{\ell} \leq M \cdot (d_{v,t} - d_{u,t} + w_{\ell})
+\end{dcases*}
+&&  \ell = (u,v),  t \in V, \neq u
 \label{LP:weights}
 \end{align}
 
@@ -129,7 +110,7 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 \item
 	$d^{t}_v$: shortest path weight from $v$ to $t$.
 \item	
-	$y_{\ell}$: weight of link $\ell$.
+	$w_{\ell}$: weight of link $\ell$.
 \end{itemize}
 
 \begin{comment}
@@ -143,7 +124,7 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 	\omega^{(s,t)}_{w},
 	x^{(t)}_{\ell} 
  \in \{0,1\} \\
- f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, y_{\ell}  \geq 0
+ f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, w_{\ell}  \geq 0
 \end{cases}
 &&  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
 \\
@@ -234,9 +215,9 @@ d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
 %\\
 % shortest paths, weight setting
 &\begin{cases*}
-	d^{t}_u \leq d^{t}_v + y_{\ell} \\
-	d^{t}_v - d^{t}_u + y_{\ell} \leq M(1 - x^t_{\ell})	\\
-	1 - x^t_{\ell} \leq M(d^{t}_v - d^{t}_u + y_{\ell})
+	d^{t}_u \leq d^{t}_v + w_{\ell} \\
+	d^{t}_v - d^{t}_u + w_{\ell} \leq M(1 - x^t_{\ell})	\\
+	1 - x^t_{\ell} \leq M(d^{t}_v - d^{t}_u + w_{\ell})
 \end{cases*}
 &&  \ell = (u,v),  t \in V
  \label{LP:weights} 
