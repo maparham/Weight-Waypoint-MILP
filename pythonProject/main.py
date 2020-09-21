@@ -53,9 +53,6 @@ def main():
     def f_v(t, v):
         return 'f^' + str(t) + '_' + str(v)
 
-    def w(s, t, i, v):
-        return 'w^{' + str((s, t)) + '_' + str(i) + '}_' + str(v)
-
     def seg(s, t, i, p, q):
         return 'S^{' + str((s, t)) + '_' + str(i) + '}_{' + str((p, q)) + '}'
 
@@ -210,7 +207,7 @@ def main():
     # [END constraints]
 
     # [START objective]
-    solver.Minimize(solver.LookupVariable('L'))
+    solver.Maximize(solver.LookupVariable('L'))
 
     # [END objective]
 
