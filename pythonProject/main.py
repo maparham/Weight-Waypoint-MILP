@@ -7,10 +7,12 @@ from ortools.linear_solver import pywraplp
 
 
 def main():
+    WP = 1  # max number of waypoints allowed per demand
+
     # Example 1
     nodes = [1, 2, 3, 4]
-    links = [(1, 2, 1), (1, 3, 1), (2, 4, 0.75), (3, 4, 2.25), (2, 3, 1.5)]  # (u,v,capacity)
-    demands = [(2, 4, 1.5, 0), (1, 4, 1.5, 1)]  # (s,t,d,i)   Todo: check s != t
+    links = [(1, 2, 1), (1, 3, 2), (2, 4, 0.5), (3, 4, 2.5), (2, 3, 0.5)]  # (u,v,capacity)
+    demands = [(1, 4, 1, 0), (1, 4, 2, 1)]  # (s,t,d,i)   Todo: check s != t
 
     # Example 2
     # nodes = [1, 2, 3, 4, 5, 6]
@@ -20,8 +22,6 @@ def main():
     # t1 = 5
     # t2 = 6
     # demands = [(s1, t1, 2, 0), (s1, t2, 1, 1), (s2, t1, 2, 2), (s2, t2, 1, 3)]  # (s,t,d,i)   Todo: check s != t
-
-    WP = 1  # max number of waypoints allowed per demand
 
     M = max(sum([d[2] for d in demands]), 2 * len(links), 100)  # a constant large enough
 
@@ -62,6 +62,12 @@ def main():
     def w(l):
         return 'w_{' + str(l[0]) + ',' + str(l[1]) + '}'
 
+    def Z(l):
+        return 'z_{' + str(l[0]) + ',' + str(l[1]) + '}'
+
+    def I(l):
+        return 'I_{' + str(l[0]) + ',' + str(l[1]) + '}'
+
     def variables():
 
         # objective variables
@@ -73,11 +79,11 @@ def main():
 
         for s, t, d, i in demands:
             for p, q in segments:
-                solver.IntVar(0, 1, seg(s, t, i, p, q))
+                solver.BoolVar(seg(s, t, i, p, q))
 
         for v in nodes:
             for l in links:
-                solver.IntVar(0, 1, x(v, l))
+                solver.BoolVar(x(v, l))
 
         for p, q in segments:
             solver.NumVar(0.0, M, f_v(p, q))
@@ -194,7 +200,38 @@ def main():
                 # print(1, '-', x_tl, '<= M * (', d_vt, '-', d_ut, '+', w_l, ')')
                 solver.Add(1 - x_tl <= M * (d_vt - d_ut + w_l))
 
+    # not part of the MIP, for possible future experiments
+    # produces link weights that maximizes the worst congestion
+    # don't forget to comment the original objective before using this
+    def maximize_congestion():
+        # not part of the main MIP
+        nonlocal WP
+        WP = 0
+        for l in links:
+            solver.NumVar(0.0, M, Z(l))
+
+        for l in links:
+            solver.BoolVar(I(l))
+
+        Z_sum = []
+        I_sum = []
+        for l in links:
+            I_l = solver.LookupVariable(I(l))
+            I_sum.append(I_l)
+            Z_l = solver.LookupVariable(Z(l))
+            Z_sum.append(Z_l)
+            solver.Add(Z_l <= I_l * M)
+            f_pql = []
+            for p, q in segments:
+                f_pql.append(solver.LookupVariable(f(p, q, l)))
+            solver.Add(Z_l <= solver.Sum(f_pql) / l[2])  # upper bound by congestion
+
+        solver.Add(solver.Sum(I_sum) == 1)
+        solver.Maximize(solver.Sum(Z_sum))
+
     variables()
+
+    # maximize_congestion()
     flows()
     segments_paths()
     capacity()
@@ -207,7 +244,7 @@ def main():
     # [END constraints]
 
     # [START objective]
-    solver.Maximize(solver.LookupVariable('L'))
+    solver.Minimize(solver.LookupVariable('L'))
 
     # [END objective]
 
