@@ -7,9 +7,20 @@ from ortools.linear_solver import pywraplp
 
 
 def main():
+    # Example 1
     nodes = [1, 2, 3, 4]
     links = [(1, 2, 1), (1, 3, 1), (2, 4, 0.75), (3, 4, 2.25), (2, 3, 1.5)]  # (u,v,capacity)
     demands = [(2, 4, 1.5, 0), (1, 4, 1.5, 1)]  # (s,t,d,i)   Todo: check s != t
+
+    # Example 2
+    # nodes = [1, 2, 3, 4, 5, 6]
+    # links = [(2, 1, 2), (2, 4, 1), (3, 1, 1), (3, 4, 2), (1, 5, 2), (1, 6, 1), (4, 5, 2), (4, 6, 1)]  # (u,v,capacity)
+    # s1 = 2
+    # s2 = 3
+    # t1 = 5
+    # t2 = 6
+    # demands = [(s1, t1, 2, 0), (s1, t2, 1, 1), (s2, t1, 2, 2), (s2, t2, 1, 3)]  # (s,t,d,i)   Todo: check s != t
+
     WP = 1  # max number of waypoints allowed per demand
 
     M = max(sum([d[2] for d in demands]), 2 * len(links), 100)  # a constant large enough
@@ -55,6 +66,10 @@ def main():
         return 'w_{' + str(l[0]) + ',' + str(l[1]) + '}'
 
     def variables():
+
+        # objective variables
+        solver.NumVar(0.0, M, 'L')
+
         for p, q in segments:
             for l in links:
                 solver.NumVar(0.0, M, f(p, q, l))
@@ -132,11 +147,12 @@ def main():
 
     # capacity constraints
     def capacity():
+        L = solver.LookupVariable('L')
         for l in links:
             f_pql = []
             for p, q in segments:
                 f_pql.append(solver.LookupVariable(f(p, q, l)))
-            solver.Add(solver.Sum(f_pql) <= l[2])
+            solver.Add(solver.Sum(f_pql) <= L * l[2])
 
     # shortest path tree constraints
     def SP_tree():
@@ -194,8 +210,8 @@ def main():
     # [END constraints]
 
     # [START objective]
-    # Maximize x + 10 * y.
-    # solver.Maximize(1)
+    solver.Minimize(solver.LookupVariable('L'))
+
     # [END objective]
 
     # [START solve]
