@@ -1,45 +1,93 @@
 from __future__ import print_function
-import sys
 from ortools.linear_solver import pywraplp
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 # from operator import itemgetter
 
 
 def main():
-    WP = 1  # max number of waypoints allowed per demand
+    WP = 0  # max number of waypoints allowed per demand
+    pos = {}
+    M = 100  # a constant large enough
+    nodes = []
+    links = []
+    demands = []
+    segments = []
 
-    # Example 1
-    nodes = [1, 2, 3, 4]
-    links = [(1, 2, 1), (1, 3, 2), (2, 4, 0.5), (3, 4, 2.5), (2, 3, 0.5)]  # (u,v,capacity)
-    demands = [(1, 4, 1, 0), (1, 4, 2, 1)]  # (s,t,d,i)   Todo: check s != t
-
-    # Example 2
-    # nodes = [1, 2, 3, 4, 5, 6]
-    # links = [(2, 1, 2), (2, 4, 1), (3, 1, 1), (3, 4, 2), (1, 5, 2), (1, 6, 1), (4, 5, 2), (4, 6, 1)]  # (u,v,capacity)
-    # s1 = 2
-    # s2 = 3
-    # t1 = 5
-    # t2 = 6
-    # demands = [(s1, t1, 2, 0), (s1, t2, 1, 1), (s2, t1, 2, 2), (s2, t2, 1, 3)]  # (s,t,d,i)   Todo: check s != t
-
-    M = max(sum([d[2] for d in demands]), 2 * len(links), 100)  # a constant large enough
-
-    segments = []  # pairs of nodes p,q where at least one of p or q is a source/terminal
-    for p in nodes:
-        for q in nodes:
-            if p == q: continue
-            segments.append((p, q))
-
-    # [START solver]
     # Create the mip solver with the CBC backend.
     solver = pywraplp.Solver.CreateSolver('simple_mip_program', 'CBC')
-    # [END solver]
-
-    # [Add variables]
     infinity = solver.infinity()
 
-    # segments = [(p, q) for p in nodes for q in nodes if p != q]
+    def init():
+        nonlocal M, segments
+        M = max(sum([d[2] for d in demands]), 2 * len(links), 100)  # a constant large enough
+        # pairs of nodes p,q where at least one of p or q is a source/terminal
+        segments = [(p, q) for p in nodes for q in nodes if p != q]
+        for i, (s, t, d) in enumerate(demands):
+            demands[i] = (s, t, d, i)
+
+    def example1():
+        # Example 1
+        nonlocal nodes, links, demands
+        nodes = [1, 2, 3, 4]
+        links = [(1, 2, 1), (1, 3, 2), (2, 4, 0.5), (3, 4, 2.5), (2, 3, 0.5)]  # (u,v,capacity)
+        demands = [(1, 4, 1, 0), (1, 4, 1, 1)]  # (s,t,d,i)   Todo: check s != t
+
+    def example2():
+        nonlocal nodes, links, demands
+        nodes = [1, 3, 2, 4, 5, 6, 141, 142, 231, 232, 361, 362, 461, 462]
+        # pos = {1: (20, 20), 2: (30, 20), 3: (25, 10), 4: (25, 30), 5: (23, 20), 6: (27, 20)}
+        # links = [(1, 3, 1), (1, 4, 2), (2, 3, 2), (2, 4, 1), (3, 5, 1), (3, 6, 2), (4, 5, 1), (4, 6, 2)]  # (u,v,capacity)
+        links = [(1, 3, 1),
+                 (1, 141, 1), (1, 142, 1), (141, 4, 1), (142, 4, 1),
+                 (2, 231, 1), (2, 232, 1), (231, 3, 1), (232, 3, 1),
+                 (2, 4, 1), (3, 5, 1),
+                 (3, 361, 1), (3, 362, 1), (361, 6, 1), (362, 6, 1),
+                 (4, 5, 1),
+                 (4, 461, 1), (4, 462, 1), (461, 6, 1), (462, 6, 1)]  # (u,v,capacity)
+        demands = [(1, 5, 1, 0), (1, 6, 2, 1), (2, 5, 1, 2), (2, 6, 2, 3)]  # (s,t,d,i)   Todo: check s != t
+
+    def ex_uniform_capacities():
+        nonlocal nodes, links, demands
+        nodes = [1, 2, 3, 4]
+        links = [(1, 2, 1), (1, 3, 1), (1, 4, 1), (2, 4, 1), (3, 4, 1)]
+        demands = [(1, 4, 2), (1, 4, 1.5), (2, 4, 0.5)]
+
+    def example_grid(m, n):
+        for i in range(m):
+            nodes.append(i)
+            for j in range(m):
+                if j == i:
+                    continue
+                links.append((i, j, 1))
+
+    def draw():
+        G = nx.DiGraph(directed=True)
+        # G.add_nodes_from(nodes)
+        for l in links:
+            G.add_edge(l[0], l[1], capacity=l[2])
+        # print("Nodes of graph: ")
+        # print(G.nodes())
+        # print("Edges of graph: ")
+        # print(G.edges())
+
+        options = {
+            # 'node_color': 'blue',
+            'node_size': 300,
+            'width': 1,
+            'arrowstyle': '->',
+            'arrowsize': 20,
+        }
+        edge_labels = dict([((u, v,), 'c=' + str(data['capacity']))
+                            for u, v, data in G.edges(data=True)])
+        nonlocal pos
+        if not pos:
+            pos = nx.circular_layout(G)
+        nx.draw_networkx(G, pos, arrows=True, with_labels=True, **options)
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels);
+        plt.show()
 
     def x(v, l):
         l_str = str(l[0]) + ',' + str(l[1])
@@ -69,7 +117,7 @@ def main():
         return 'I_{' + str(l[0]) + ',' + str(l[1]) + '}'
 
     def variables():
-
+        init()
         # objective variables
         solver.NumVar(0.0, M, 'L')
 
@@ -229,15 +277,18 @@ def main():
         solver.Add(solver.Sum(I_sum) == 1)
         solver.Maximize(solver.Sum(Z_sum))
 
-    variables()
+    ex_uniform_capacities()
 
+    WP = 0
+    variables()
+    # draw()
     # maximize_congestion()
     flows()
     segments_paths()
     capacity()
     SP_tree()
     even_split()
-    weights()
+    # weights()
 
     print('Number of constraints =', solver.NumConstraints())
 
