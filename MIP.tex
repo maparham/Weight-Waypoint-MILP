@@ -1,0 +1,241 @@
+
+\documentclass[a4paper,USenglish]{article}
+
+\usepackage{amsmath,amssymb,amsfonts,mathtools}
+\usepackage{cases}
+\usepackage{comment}
+
+\newcommand{\sub}[1]{ \hspace{-4ex}\mathrlap{#1} }
+
+\title{Weight-Waypoint Optimization}
+\date{\today}
+\begin{document}
+
+\maketitle
+
+\begin{align}
+& \text{Minimize} ~L \nonumber	&&\\
+% variables 
+&M := \max \{ \sum_{\sub{(s,t,d)_i \in \mathcal{D}}} d, 2|E| \} &&
+\\
+&\mathcal{S} := \{(p,q) \in V^2 ~|~  p \neq q \}	&&
+\\
+&\begin{dcases}
+	S^{(s,t)_i}_{(p,q)}, x^{q}_{\ell} \in \{0,1\} \\
+	f^{(p,q)}_{\ell}, f^{q}_{p}, d_{p,q}, w_{\ell}  \geq 0, w_{\ell}  \leq 1
+\end{dcases}
+&&
+\begin{multlined}
+	  (p,q) \in \mathcal{S}, \ell \in E, \\
+	   (s,t,d)_i \in \mathcal{D}
+\end{multlined}	 \label{LP:vardef}    
+\\
+& D_{p,q} := \sum_{\sub{ (s,t,d)_i \in \mathcal{D}}} S^{(s,t)_i}_{(p,q)} \cdot d
+&& (p,q) \in \mathcal{S}
+\\
+%  flow constraints, per segment
+&\sum_{\sub{\ell = (*,v) \in E}} f^{(p,q)}_{\ell}  -
+	\sum_{\sub{\ell= (v,*) \in E} }f^{(p,q)}_{\ell} =
+	\begin{dcases}
+	0	&v \neq p,q\\
+	- D_{p,q} 	&v=p \\
+	D_{p,q} &v=q
+	\end{dcases}
+&&(p,q) \in \mathcal{S}, v \in V	\label{LP:flowcons}
+\\
+%  segment contraints, per demand
+& \sum_{\sub{ s=(*,v) \in \mathcal{S}}} S^{(s,t)_i}_{s} - 
+	 \sum_{\sub{ s=(v,*) \in \mathcal{S}}} S^{(s,t)_i}_{s} =
+	 \begin{dcases}
+	 	0	& v \neq s,t	\\
+	 	-1	&v=s	\\
+	 	1	&v=t
+	 \end{dcases}
+&&(s,t,d)_i \in \mathcal{D}, v \in V		\label{LP:segments}
+\\
+% waypoint limit
+&\sum_{\sub{(p,q) \in \mathcal{S}}} S^{(s,t)_i}_{(p,q)}  \leq W+1
+&&  (s,t,d)_i \in \mathcal{D}
+\label{LP:wp_limit} 
+\\
+% capacities
+& \sum_{\sub{(p,q) \in \mathcal{S}}} f^{(p,q)}_{\ell} \leq L \cdot C_{\ell}
+&&  \ell \in E
+\\
+% shortest path trees
+&   f^{(p,q)}_{\ell} \leq M \cdot x^{q}_{\ell}
+&&   (p,q) \in \mathcal{S},  \ell \in E
+\label{LP:SPTree} 
+%\\
+%&x^{t}_{\ell} \leq	
+%		M \cdot \sum_{\sub{p: (p,t) \in \mathcal{S}}} f^{(p,t)}_{\ell}
+%&& t \in V, \ell \in E
+%\label{LP:SPTree} 
+\\
+% equal split
+&
+\begin{dcases*}
+\sum_{\sub{p:(p,t) \in \mathcal{S}}} f^{(p,t)}_{\ell} \leq f^{t}_{v}	\\
+f^{t}_{v} - \sum_{\sub{p:(p,t) \in \mathcal{S}}} f^{(p,t)}_{\ell} \leq 
+	M \cdot (1 - x^{t}_{\ell}) 
+\end{dcases*}			
+&&  v,t \in V, v \neq t, \ell = (v,*)
+\label{LP:equalSplit} 
+\\ 
+% shortest paths, weight setting
+&\begin{dcases*}
+d_{u,t} \leq d_{v,t} + w_{\ell} \\
+d_{v,t} - d_{u,t} + w_{\ell} \leq M \cdot (1 - x^t_{\ell})	\\
+1 - x^t_{\ell} \leq M \cdot (d_{v,t} - d_{u,t} + w_{\ell})
+\end{dcases*}
+&&  \ell = (u,v),  t \in V, \neq u
+\label{LP:weights}
+\end{align}
+
+
+
+\begin{itemize}
+\item
+	$W$: maximum  number of waypoints allowed per demand (constant).
+\item
+	$M$: a constant large enough.		
+\item	
+	$x^{(t)}_{\ell}$:	binary variables indicating whether link $\ell$ is on a shortest path to node $t$.
+\item	
+	$f^{(p,q)}_{\ell}$: the fractional amount of flow for segment $(p,q)$ on the link $\ell$.
+\item	
+	$f^{(p,q)}_{v}$:  the total flow of segment $(p,q)$ leaving  node $v$.
+\item
+	$S^{(s,t)_i}_{(p,q)}$: binary variable indicating whether segment $(p,q)$ is  active for demand $(s,t,d)_i$
+\item
+	$d^{t}_v$: shortest path weight from $v$ to $t$.
+\item	
+	$w_{\ell}$: weight of link $\ell$.
+\end{itemize}
+
+\begin{comment}
+\begin{align}
+& \text{Minimize} ~L \nonumber	&&\\
+% variables 
+&M := \sum_{ (s,t,d) \in \mathcal{D}} d &&\\
+&\begin{cases}
+	h^{(s,t)}_{(s,w)}, h^{(s,t)}_{(w,t)}  \in \{0,1\} \\
+	\tau^{(s,t)}_{(s,w)}, \tau^{(s,t)}_{(w,t)},
+	\omega^{(s,t)}_{w},
+	x^{(t)}_{\ell} 
+ \in \{0,1\} \\
+ f^{(t)}_{\ell}, f^{(s,t)}_{v}, d^{t}_v, w_{\ell}  \geq 0
+\end{cases}
+&&  s,t,w \in V, s \neq t, \ell \in E \label{LP:vardef}    
+\\
+% left segment
+&\sum_{\ell = (*,q)} f^{(p,q)}_{\ell} 
+= \sum_{ s,t\in V, s\neq t} \tau^{(s,t)}_{(p,q)}
+%\sum_{\ell= (v,*)}f^{(s,t)}_{\ell}
+&&  p,q \in V
+\label{LP:flowsink1}
+ \\
+ % right segment
+ &\sum_{\ell = (v,*)} f^{(p,q)}_{\ell} = 
+ \sum_{\ell = (*,v)} f^{(p,q)}_{\ell} 
+ &&  p,q,v \in V, v \not\in \{p,q\}
+ \label{LP:flowcons1}
+ \\
+ % flow source
+% &\sum_{\ell = (*,w)} f^{(w,t)}_{\ell} - \sum_{\ell= (w,*)}f^{(w,t)}_{\ell}
+% 	= \sum_{  t \in V, \neq w} - \tau^{(w,t)}_{(w,t)}
+% &&  w \in V
+% \label{LP:flowsource}
+% \\
+ & 
+ \begin{cases}
+	 \omega^{(s,t)}_{t} = 1 \\
+	 \tau^{(s,t)}_{(s,t)} = d
+ \end{cases}
+ &&  (s,t,d) \in \mathcal{D}
+ \label{LP:wp_t}
+ \\
+ % segment activation
+ &
+ \begin{cases*}
+% 	\omega^{(s,t)}_{w} -\tau^{(s,t)}_{(s,w)} \leq h^{(s,t)}_{(s,w)}\\
+% 	 \omega^{(s,t)}_{w} -\tau^{(s,t)}_{(w,t)} \leq h^{(s,t)}_{(w,t)}	\\
+%	h^{(s,t)}_{(s,w)} \leq  \sum_{w' \in V} \omega^{(s,w)}_{w'}	\\
+%    h^{(s,t)}_{(w,t)}\leq  \sum_{w' \in V} \omega^{(w,t)}_{w'}	
+    \omega^{(s,t)}_{w} \cdot (1-\tau^{(s,t)}_{(s,w)}) \leq  \sum_{w' \in V} \omega^{(s,w)}_{w'}	\\
+    \omega^{(s,t)}_{w} \cdot (1-\tau^{(s,t)}_{(w,t)})  \leq  \sum_{w' \in V} \omega^{(w,t)}_{w'}	    
+ \end{cases*}	 
+ &&  s,t,w \in V, s\neq t
+ \label{LP:segments}
+  \\
+ &
+ \begin{cases*}
+  \omega^{(s,t)}_{w} \cdot \tau^{(s,t)}_{(s,t)} \leq \tau^{(s,t)}_{(s,w)}	\\
+ \omega^{(s,t)}_{w}  \cdot \tau^{(s,t)}_{(s,t)} \leq  \tau^{(s,t)}_{(w,t)}\\
+ \sum_{ v\in V} \tau^{(s,v)}_{(s,w)} \leq \tau^{(s,w)}_{(s,w)} \\
+   \sum_{ v\in V} \tau^{(v,t)}_{(w,t)} \leq  \tau^{(w,t)}_{(w,t)} 
+ \end{cases*}
+ &&  s,t,w \in V, s\neq t
+ \\
+  % waypoint limit
+ &\sum_{v \in V}  \omega^{(s,t)}_v \leq W
+ &&  (s,t,d) \in \mathcal{D}
+ \label{LP:wp_limit} 
+ \\
+ % capacities
+ & \sum_{ s,t \in V} f^{(s,t)}_{\ell} \leq L \cdot C_{\ell}
+ &&  \ell \in E
+ \\
+% % flow through \ell
+% &  f^{(s,t)}_{\ell}  = \sum_{(s,t,d) \in \mathcal{D}} f^{(s,t)}_{\ell} 
+% && \ell \in E, t \in V: \exists(s,t,d) \in \mathcal{D}
+% \label{LP:ellFlow} 
+% \\
+  % shortest path trees
+&   f^{(s,t)}_{\ell} \leq M \cdot x^{(t)}_{\ell}
+&&  \ell \in E, s,t \in V
+ \label{LP:SPTree} 
+ \\
+% equal split
+&
+\begin{cases*}
+	f^{(s,t)}_{\ell} \leq f^{(s,t)}_{v}	\\
+	f^{(s,t)}_{v} - f^{(s,t)}_{\ell} \leq M(1 - x^{t}_{\ell}) 
+\end{cases*}	
+&&  v,s,t \in V, \ell = (v,*)
+ \label{LP:equalSplit} 
+\\ 
+%%waypoint setting
+%&\begin{cases}
+%	h^{(s,t)}_{v,\ell} \leq (1-x^{(v)}_{\ell})	\\
+%	h^{(s,t)}_{v,\ell} \leq	w^{(s,t)}_v 
+%\end{cases}
+%&&  v \in V, \ell = (v,*), (s,t,d) \in \mathcal{D}
+% \label{LP:equalSplit3} 
+%\\
+% shortest paths, weight setting
+&\begin{cases*}
+	d^{t}_u \leq d^{t}_v + w_{\ell} \\
+	d^{t}_v - d^{t}_u + w_{\ell} \leq M(1 - x^t_{\ell})	\\
+	1 - x^t_{\ell} \leq M(d^{t}_v - d^{t}_u + w_{\ell})
+\end{cases*}
+&&  \ell = (u,v),  t \in V
+ \label{LP:weights} 
+\end{align}
+\end{comment}
+
+Constraints (\ref{LP:flowdest}) impose flow conservation for every destination (sink node) $t$
+and as well as for the ordinary  nodes which must preserve the flow.
+The right hand side of these constraints is non-zero only if there is a demand from (to) the corresponding source (destination). For original sources and destinations, i.e., those given as input, 
+the r.h.s is always non-zero and is the total  demand from (to) that node.
+This is ensured by constraints (\ref{LP:wp_t}) and  (\ref{LP:segments}).
+ Constraints (\ref{LP:wp_t}) designate the destination of each demand as its (default) waypoint.
+ A waypoint $w$  on a segment $(s,t)$ is indicated by $\omega^{(s,t)}_{w}$.
+Constraints at (\ref{LP:segments}) ensure that if for a segment $(s,t)$
+a waypoint $w$ is set (i.e., $\omega^{(s,t)}_{w}=1$),
+then the two (sub-)segments $(s,w)$ and $(w,t)$ are active.
+That is,
+$\tau^{(s,t)}_{(s,w)} = \tau^{(s,t)}_{(w,t)} = 1$.
+That is, one flow must run from $s$ to $w$ and another from $w$ to $w$, both with size equal to the value $d$ of the demand $(s,t,d) \in \mathcal{D}$.
+A segment is active 
+\end{document}
